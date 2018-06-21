@@ -17,7 +17,7 @@ If there exists a most free license, this will be freer than it.
 Everyone is permitted to copy, distribute or modifiy anything under this license.
 
                    FREER THAN EVER PUBLIC LICENSE
-    TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION 
+    TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
 
 0. You are freer than ever to copy, distribute and modifiy anything under this license.
 """
@@ -66,19 +66,19 @@ def show_help():
          __  / /\__ \/ / / /  |/ /_____/ /_/ /\  /_____/ __/  \__ \\
         / /_/ /___/ / /_/ / /|  /_____/ ____/ / /_____/ /___ ___/ /
         \____//____/\____/_/ |_/     /_/     /_/     /_____//____/
-        
+
                         Import raw JSON to ElasticSearch in one line of commands
                                                            -- Alexander Liu
 
                                                            """
                                                            +
-                                                           
+
                                                            version
 
                                                            +
                                                            """
 
-            
+
     Options include:
 
         --data                  : The JSON data file
@@ -88,8 +88,8 @@ def show_help():
         --type                  : Index type
         --import                : Import raw JSON data to ES. This proccess does "--check" and data importing
         --thread                : Threads amount, default 1. The more threads, the faster when importing or checking
-        --version               : Prints the version number 
-        --help                  : Display this help 
+        --version               : Prints the version number
+        --help                  : Display this help
 
     Notice:
 
@@ -219,7 +219,7 @@ def new_return_start_stop_for_multi_thread_in_list(lines=0, thread_amount=1):
     """
 
 
-    # lets assume if there were 17 lines and 4 threads, 
+    # lets assume if there were 17 lines and 4 threads,
     # thread (1)(2)(3) can have 5 job tasks maximumly. thread (4) only has 2 job tasks
     #
     # their job list:
@@ -231,10 +231,10 @@ def new_return_start_stop_for_multi_thread_in_list(lines=0, thread_amount=1):
     #
 
     start_stop_line_list = []
-    each_has = lines / thread_amount 
+    each_has = lines / thread_amount
     # last_remains = lines - (thread_amount * each_has)
     last_remains = lines % thread_amount                        # 17 % 4 -> 1
-    
+
     for t in range(thread_amount):
         start_stop_line_list.append(
             {
@@ -274,7 +274,7 @@ class Jsonpyes(object):
     """Re-edit this in the future maybe.
     Pending, no need until now
     """
-    
+
     def __init__(self):
         pass
 
@@ -306,7 +306,7 @@ class Jsonpyes(object):
                             pass
                 # assume all JSON valid
                 return True
-    
+
     # TODO add muti-threads support
     def importWithOutChecking(self):
         pass
@@ -315,18 +315,28 @@ class Jsonpyes(object):
     def importAfterChecking(self):
         pass
 
+def esindex(es, index, doc_type, line):
+    try:
+        es.index(index=index, doc_type=doc_type,
+            #id=2,
+            body=json.loads(line)
+        )
+    except Exception as e:
+        print("EXCEPTION:" + str(e) + ":" + line)
+    finally:
+        pass
 
 def run():
     """
     """
-    
+
     if len(sys.argv) == 1:
         show_help()
         return
     else:
         # logic set
         process_jobs = []
-        
+
         for i in range(len(sys.argv[0:])):
             if sys.argv[i].startswith("--"):
                 try:
@@ -357,23 +367,23 @@ def run():
                     # Add info to jobs
                     process_jobs.append(
                         {"bulk": sys.argv[i+1]}
-                    ) 
-                
+                    )
+
                 # get the bulk index
                 elif option == "index":
                     # Add info to jobs
                     process_jobs.append(
                         {"index": sys.argv[i+1]}
-                    ) 
-                
+                    )
+
                 # get the bulk type
                 elif option == "type":
                     # Add info to jobs
                     process_jobs.append(
                         {"type": sys.argv[i+1]}
-                    ) 
-                
-                
+                    )
+
+
                 # check raw JSON
                 elif option == "check":
                     # Add info to jobs
@@ -381,8 +391,8 @@ def run():
                         "check"
                     )
 
-                    
-                # check if bulk API is valid      
+
+                # check if bulk API is valid
                 elif option == "import":
                     # Add info to jobs
                     process_jobs.append(
@@ -394,11 +404,11 @@ def run():
                     # Add info to jobs
                     process_jobs.append(
                         {"thread_amount": sys.argv[i+1]}
-                    ) 
+                    )
                     process_jobs.append(
                         "thread"
                     )
-                
+
 
         data = ""
         bulk = ""
@@ -426,26 +436,23 @@ def run():
             if flag == True:
                 print("All raw JSON data valid!")
             return
-                
+
         # Process the jobs in process_jobs
         # 2) Only import without checking
         #### 2.1) import, check , no multi-threads
         if ("check" in process_jobs) and ("import" in process_jobs) and ("thread" not in process_jobs):
-            
+
             # check JSON
             flag = validate_json_data(json_file=data)
             if flag == True:
                 print("All raw JSON data valid!")
-                
+
             es = Elasticsearch([bulk], verify_certs=True)
             # read JSON data
             with open(data, 'r') as f:
                 for line in f:
-                    es.index(index=index, doc_type=doc_type, 
-                        #id=2, 
-                        body=json.loads(line)
-                    )
-            
+                    esindex(es, index, doc_type, line)
+
             print("Successfully data imported!")
             return
 
@@ -456,33 +463,28 @@ def run():
             # read JSON data
             with open(data, 'r') as f:
                 for line in f:
-                    es.index(index=index, doc_type=doc_type, 
-                        #id=2, 
-                        body=json.loads(line)
-                    )
-            
+                    esindex(es, index, doc_type, line)
+
             print("Successfully data imported!")
             return
 
 
         #### 2.3) import, no check, multi-threads
         if ("import" in process_jobs) and ("check" not in process_jobs) and ("thread" in process_jobs):
-   
+
 
 
             # check file lines
             lines = c_file_lines(json_file=data)
             # if lines < 1024, it will only use 1 thread to finish this job, no matter how many you want
             if lines < 1024:
-            #if lines < 4:                                              # Only for debugging 
+            #if lines < 4:                                              # Only for debugging
                 es = Elasticsearch([bulk], verify_certs=True)
                 # read JSON data
                 with open(data, 'r') as f:
                     for line in f:
-                        es.index(index=index, doc_type=doc_type, 
-                            #id=2, 
-                            body=json.loads(line)
-                        )
+                        esindex(es, index, doc_type, line)
+
             else:
                 # calculate each thread reads how many lines
                 start_stop_line_list = new_return_start_stop_for_multi_thread_in_list(lines=lines, thread_amount=thread_amount)
@@ -490,13 +492,13 @@ def run():
                 threads = []
                 for i in start_stop_line_list:
                     #t = StoppableThread(target=worker_import_to_es_for_threading, args=(data, i['start'], i['stop']))
-                    t = threading.Thread(target=worker_import_to_es_for_threading, 
+                    t = threading.Thread(target=worker_import_to_es_for_threading,
                                          args=(data, i['start'], i['stop'], Elasticsearch([bulk], verify_certs=True), index, doc_type, )
                     )
                     threads.append(t)
                     t.start()
                     t.join()
-                    
+
 
                 # stop all threads if interrupts
                 try:
@@ -513,8 +515,8 @@ def run():
 
             print("Successfully data imported!")
             return
- 
- 
+
+
          #### 2.4) import, check, multi-threads
 
         if ("import" in process_jobs) and ("check" in process_jobs) and ("thread" in process_jobs):
@@ -530,15 +532,13 @@ def run():
             lines = c_file_lines(json_file=data)
             # if lines < 1024, it will only use 1 thread to finish this job, no matter how many you want
             if lines < 1024:
-            #if lines < 4:                                              # Only for debugging 
+            #if lines < 4:                                              # Only for debugging
                 es = Elasticsearch([bulk], verify_certs=True)
                 # read JSON data
                 with open(data, 'r') as f:
                     for line in f:
-                        es.index(index=index, doc_type=doc_type, 
-                            #id=2, 
-                            body=json.loads(line)
-                        )
+                        esinde(es, line)
+
                 print("Successfully data imported!")
                 exit(0)
                 return
@@ -549,13 +549,13 @@ def run():
                 threads = []
                 for i in start_stop_line_list:
                     #t = StoppableThread(target=worker_import_to_es_for_threading, args=(data, i['start'], i['stop']))
-                    t = threading.Thread(target=worker_import_to_es_for_threading, 
+                    t = threading.Thread(target=worker_import_to_es_for_threading,
                                          args=(data, i['start'], i['stop'], Elasticsearch([bulk], verify_certs=True), index, doc_type, )
                     )
                     threads.append(t)
                     t.start()
                     t.join()
-                    
+
 
                 # stop all threads if interrupts
                 try:
@@ -573,15 +573,15 @@ def run():
                     exit(0)
                     return
 
- 
+
         else:
             show_help()
             return
-    
-    
-        
- 
-    
+
+
+
+
+
 
 
 if __name__ == "__main__":
